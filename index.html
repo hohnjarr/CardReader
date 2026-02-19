@@ -747,7 +747,7 @@
   const toast = document.getElementById('toast');
 
   let currentImageBase64 = null;
-  let contacts = JSON.parse(localStorage.getItem('cardfile_contacts') || '[]');
+  let contacts = [];
   let apiKey = localStorage.getItem('cardfile_apikey') || '';
 
   // API Key modal
@@ -796,8 +796,29 @@
 
   if (!apiKey) { showModal(); } else { hideModal(); updateKeyStatus(); }
 
-  // Init
-  renderContacts();
+  // Init — load contacts from persistent storage
+  async function init() {
+    try {
+      const result = await window.storage.get('cardfile_contacts');
+      if (result && result.value) {
+        contacts = JSON.parse(result.value);
+      }
+    } catch (e) {
+      // No contacts yet
+      contacts = [];
+    }
+    renderContacts();
+  }
+
+  async function saveContacts() {
+    try {
+      await window.storage.set('cardfile_contacts', JSON.stringify(contacts));
+    } catch (e) {
+      console.error('Failed to save contacts:', e);
+    }
+  }
+
+  init();
 
   fileInput.addEventListener('change', (e) => {
     const file = e.target.files[0];
@@ -900,7 +921,7 @@
     };
 
     contacts.push(contact);
-    localStorage.setItem('cardfile_contacts', JSON.stringify(contacts));
+    saveContacts();
     hideResult();
     clearBtn.click();
     renderContacts();
@@ -984,7 +1005,7 @@
       btn.addEventListener('click', () => {
         const id = parseInt(btn.dataset.id);
         contacts = contacts.filter(c => c.id !== id);
-        localStorage.setItem('cardfile_contacts', JSON.stringify(contacts));
+        saveContacts();
         renderContacts();
       });
     });
