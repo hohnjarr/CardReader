@@ -804,12 +804,15 @@
     if (!file) return;
     const reader = new FileReader();
     reader.onload = (ev) => {
-      currentImageBase64 = ev.target.result.split(',')[1];
-      previewImg.src = ev.target.result;
-      previewWrap.style.display = 'block';
-      scanBtn.style.display = 'flex';
-      hideResult();
-      errorBox.style.display = 'none';
+      const original = ev.target.result;
+      compressImage(original, 1500, 0.75).then(compressed => {
+        currentImageBase64 = compressed.split(',')[1];
+        previewImg.src = compressed;
+        previewWrap.style.display = 'block';
+        scanBtn.style.display = 'flex';
+        hideResult();
+        errorBox.style.display = 'none';
+      });
     };
     reader.readAsDataURL(file);
   });
@@ -929,6 +932,25 @@
 
   function hideResult() {
     resultCard.style.display = 'none';
+  }
+
+  function compressImage(dataUrl, maxDim, quality) {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxDim || height > maxDim) {
+          if (width > height) { height = Math.round(height * maxDim / width); width = maxDim; }
+          else { width = Math.round(width * maxDim / height); height = maxDim; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.src = dataUrl;
+    });
   }
 
   function renderContacts() {
